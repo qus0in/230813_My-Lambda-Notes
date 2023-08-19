@@ -49,7 +49,7 @@ aws ecr get-login-password \
 # [저장소]
 echo "🤓 Check ECR"
 aws ecr create-repository \
-    --repository-name dododock \
+    --repository-name $DK_IMG_NAME \
     --image-scanning-configuration scanOnPush=true \
     --image-tag-mutability MUTABLE
 export DK_REPO_URI="$AWS_ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com/${DK_IMG_NAME}:latest"
