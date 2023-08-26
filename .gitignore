@@ -1,3 +1,5 @@
 */venv
 .env
+.sh
 */response.json
+*/__pycache__

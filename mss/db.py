@@ -80,7 +80,8 @@ class FinanceDB:
 class NotionDB:
     def __init__(self) -> None:
         self.load_notion_api_key()
-        self.load_db_id()
+        self.load_item_db_id()
+        self.load_option_db_id()
 
     def send_requests(self, method, URL, json={}):
         headers = {
@@ -90,12 +91,33 @@ class NotionDB:
         return requests.request(method, URL,
                                 json=json, headers=headers)
     
+    def get_options(self) -> pd.DataFrame:
+        URL = f'https://api.notion.com/v1/databases/{self.option_db_id}/query'
+        res = self.send_requests('POST', URL).json()
+        mapper = lambda x: {
+            'OPTION': x.get('id'),
+            'VALUE': x.get('properties').get('SYMBOL').get('title')[0]['plain_text'],
+        }
+        symbols = pd.DataFrame(list(map(mapper, res.get('results'))))
+        return symbols        
+    
     def get_symbols(self) -> pd.DataFrame:
-        URL = f'https://api.notion.com/v1/databases/{self.db_id}/query'
+        URL = f'https://api.notion.com/v1/databases/{self.item_db_id}/query'
         res = self.send_requests('POST', URL).json()
         mapper = lambda x: {
             'ID': x.get('id'),
             'SYMBOL': x.get('properties').get('SYMBOL').get('title')[0]['plain_text'],
+        }
+        symbols = pd.DataFrame(list(map(mapper, res.get('results'))))
+        return symbols
+    
+    def get_options(self) -> pd.DataFrame:
+        URL = f'https://api.notion.com/v1/databases/{self.option_db_id}/query'
+        res = self.send_requests('POST', URL).json()
+        mapper = lambda x: {
+            'ID': x.get('id'),
+            'OPTION': x.get('properties').get('OPTION').get('title')[0]['plain_text'],
+            'VALUE': x.get('properties').get('VALUE').get('number')
         }
         symbols = pd.DataFrame(list(map(mapper, res.get('results'))))
         return symbols
@@ -107,16 +129,21 @@ class NotionDB:
                                  {'properties': properties})
         if res.status_code != 200:
             raise Exception(res.json().get('message'))
-        
+    
     def load_notion_api_key(self):
         self.notion_api_key = os.getenv('notion_api_key')
         if not self.notion_api_key:
             raise Exception('NO NOTION API KEY')
 
-    def load_db_id(self):
-        self.db_id = os.getenv('mss_item_db_id')
-        if not self.db_id:
-            raise Exception('NO DB ID') 
+    def load_item_db_id(self):
+        self.item_db_id = os.getenv('mss_item_db_id')
+        if not self.item_db_id:
+            raise Exception('NO ITEM DB ID') 
+        
+    def load_option_db_id(self):
+        self.option_db_id = os.getenv('mss_option_db_id')
+        if not self.option_db_id:
+            raise Exception('NO OPTION DB ID') 
         
     @classmethod
     def text_mapper(cls, content):

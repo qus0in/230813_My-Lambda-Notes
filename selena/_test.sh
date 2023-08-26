@@ -1,23 +1,11 @@
-export DK_IMG_NAME=mss
+export DK_IMG_NAME=selena
 export DK_IMG_TAG=aws_lambda
 export TEST_URL=http://localhost:9000/2015-03-31/functions/function/invocations
 echo "DOCKER IMAGE : $DK_IMG_NAME:$DK_IMG_TAG"
 
-# [빌드]
-echo "😎 DOCKER BUILD"
-if [ -e "./venv" ]; then
-    echo "😏 You use venv!"
-    source venv/bin/activate
-    pip freeze > requirements.txt 
-else
-    echo "😉 requirements.txt ONLY"
-fi
-docker build -t $DK_IMG_NAME:$DK_IMG_TAG .
-
 # [테스트]
 echo "😎 DOCKER RUN"
-# docker run -d -p 9000:8080 $DK_IMG_NAME:$DK_IMG_TAG
-docker run --env-file .env -d -p 9000:8080 $DK_IMG_NAME:$DK_IMG_TAG 
+docker run -d -p 9000:8080 $DK_IMG_NAME:$DK_IMG_TAG
 # -d : detach, in backgroound; -p : port number
 echo "😎 AWS LAMBDA TEST"
 curl -XPOST $TEST_URL -d '{}'
