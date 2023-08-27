@@ -49,7 +49,8 @@ class FinanceDB:
         return (
             sum([price.Close.rolling(f)\
             .apply(lambda x: (x[-1] / x[0]))\
-            .sub(1).div(f).add(1).pow(252).sub(1)
+            .transform(lambda x: x ** (1/f))\
+            .pow(252).sub(1)\
             for f in cls.fibonacci])\
             .div(len(cls.fibonacci))\
             .round(3).iloc[-1])
@@ -86,20 +87,11 @@ class NotionDB:
     def send_requests(self, method, URL, json={}):
         headers = {
             'Authorization' : f'Bearer {self.notion_api_key}',
+            'Content-Type': 'application/json',
             'Notion-Version' : '2022-06-28'
         }
         return requests.request(method, URL,
                                 json=json, headers=headers)
-    
-    def get_options(self) -> pd.DataFrame:
-        URL = f'https://api.notion.com/v1/databases/{self.option_db_id}/query'
-        res = self.send_requests('POST', URL).json()
-        mapper = lambda x: {
-            'OPTION': x.get('id'),
-            'VALUE': x.get('properties').get('SYMBOL').get('title')[0]['plain_text'],
-        }
-        symbols = pd.DataFrame(list(map(mapper, res.get('results'))))
-        return symbols        
     
     def get_symbols(self) -> pd.DataFrame:
         URL = f'https://api.notion.com/v1/databases/{self.item_db_id}/query'
@@ -152,3 +144,7 @@ class NotionDB:
     @classmethod
     def number_mapper(cls, value):
         return {'number': value}
+    
+    @classmethod
+    def checkbox_mapper(cls, value):
+        return {'checkbox': bool(value)}
