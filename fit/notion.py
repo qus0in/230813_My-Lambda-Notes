@@ -3,36 +3,37 @@ import requests
 import os
 
 class Notion:
-    def __init__(self) -> None:
-        self.load_notion_api_key()
+    채권현황_DB_ID = '7634ac1547be404293e48393dc72a146'
 
-    def send_requests(self, method, URL, json={}):
+    @classmethod
+    def send_requests(cls, method, URL, json={}):
+        notion_api_key = os.getenv('notion_api_key')
+        if not notion_api_key:
+            raise Exception('NO NOTION API KEY')
+
         headers = {
-            'Authorization' : f'Bearer {self.notion_api_key}',
+            'Authorization' : f'Bearer {notion_api_key}',
             'Content-Type': 'application/json',
             'Notion-Version' : '2022-06-28'
         }
         return requests.request(method, URL,
                                 json=json, headers=headers)
     
-    def get_data(self, db_id, mapper) -> pd.DataFrame:
+    @classmethod
+    def get_data(cls, db_id: str, mapper) -> pd.DataFrame:
         URL = f'https://api.notion.com/v1/databases/{db_id}/query'
-        res = self.send_requests('POST', URL).json()
+        res = cls.send_requests('POST', URL).json()
         return pd.DataFrame(list(map(mapper, res.get('results'))))
     
-    def update_properties(self, page_id, properties):
+    @classmethod
+    def update_properties(cls, page_id, properties):
         URL = f"https://api.notion.com/v1/pages/{page_id}"
         print(page_id, properties)
-        res = self.send_requests('PATCH', URL,
+        res = cls.send_requests('PATCH', URL,
                                  {'properties': properties})
         if res.status_code != 200:
             raise Exception(res.json().get('message'))
     
-    def load_notion_api_key(self):
-        self.notion_api_key = os.getenv('notion_api_key')
-        if not self.notion_api_key:
-            raise Exception('NO NOTION API KEY')
-
     @classmethod
     def text_mapper(cls, content):
         return {'rich_text': [{'text':{'content': content}}]}
