@@ -4,6 +4,8 @@ import os
 
 class Notion:
     채권현황_DB_ID = '7634ac1547be404293e48393dc72a146'
+    채권기록_DB_ID = '7214b17f1c4a4511996d4193d1df63cc'
+    옵션_DB_ID = '2cafa7dc713d4738957fc6edb1e29b83'
 
     @classmethod
     def send_requests(cls, method, URL, json={}):
@@ -26,6 +28,14 @@ class Notion:
         return pd.DataFrame(list(map(mapper, res.get('results'))))
     
     @classmethod
+    def add_data(cls, db_id: str, properties):
+        URL = f'https://api.notion.com/v1/pages'
+        res = cls.send_requests('POST', URL,
+                {'parent': { 'database_id' : db_id } ,'properties': properties})
+        if res.status_code != 200:
+            raise Exception(res.json().get('message'))
+
+    @classmethod
     def update_properties(cls, page_id, properties):
         URL = f"https://api.notion.com/v1/pages/{page_id}"
         print(page_id, properties)
@@ -45,3 +55,11 @@ class Notion:
     @classmethod
     def checkbox_mapper(cls, value):
         return {'checkbox': bool(value)}
+    
+    @classmethod
+    def date_mapper(cls, value):
+        return {'date': {'start': value}}
+    
+    @classmethod
+    def title_mapper(cls, content):
+        return {'title': [{'text':{'content': content}}]}

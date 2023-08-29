@@ -14,6 +14,7 @@ class FSC:
         fsc_api_key = os.getenv('fsc_api_key')
         if not fsc_api_key:
             raise Exception('NO FSC API KEY')
+        print(fsc_api_key)
         params = dict(
             serviceKey=fsc_api_key,
             resultType='json',
@@ -50,8 +51,10 @@ class FSC:
         for _ in range(14):
             print(최근일자.date())
             try:
-                return cls.get_data(FSC.PRICE_INFO,
+                info = cls.get_data(FSC.PRICE_INFO,
                                     최근일자.strftime('%Y%m%d'), 1000)
+                print('OK')
+                return info
             except Exception as e:
                 print(e)
                 최근일자 -= relativedelta(days=1)
@@ -64,11 +67,13 @@ class FSC:
         for _ in range(14):
             print(최근일자.date())
             try:
-                return cls.get_data(FSC.BASE_INFO,
+                info = cls.get_data(FSC.BASE_INFO,
                                     최근일자.strftime('%Y%m%d'), 30000)
+                print('OK')
+                return info
             except Exception as e:
                 print(e)
-                최근일자 -= relativedelta(days=1)   
+                최근일자 -= relativedelta(days=1)
 
     @classmethod
     def get_bond_info(cls):
@@ -76,17 +81,25 @@ class FSC:
         base_info = cls.get_base_info()
         bond_info = pd.merge(price_info, base_info, on='isinCd', suffixes=['x', 'y'])
         bond_info = bond_info.loc[:, [
-            # 채권명, 거래량, 가격, 수익률, 표면이율, 
-            'itmsNm', 'trqu', 'clprPrc', 'clprBnfRt', 'bondSrfcInrt', # 'scrsItmsKcdNm' : 분류
-            # 만기일
-            'bondExprDt', # 'bondIsurNm' : 발행자명, 'intPayCyclCtt' : 이자주기
+            # 채권명, 거래일, 거래량,
+            'itmsNm', 'basDtx', 'trqu',
+            # 가격, 수익률, 표면이율, 만기일
+            'clprPrc', 'clprBnfRt', 'bondSrfcInrt', 'bondExprDt',
             # 신뢰도
             'kisScrsItmsKcdNm', 'kbpScrsItmsKcdNm', 'niceScrsItmsKcdNm']]
+        # 'bondIsurNm' : 발행자명, 'intPayCyclCtt' : 이자주기
+        # 'scrsItmsKcdNm' : 분류
         bond_info.rename(columns=dict(
-            itmsNm = 'NAME', trqu = 'VOLUME', clprPrc = 'PRICE',
+            basDtx= 'DATE', itmsNm = 'NAME', trqu = 'VOLUME', clprPrc = 'PRICE',
             clprBnfRt = 'BENEFIT', bondSrfcInrt = 'INTEREST', bondExprDt = 'EXPIRE',
             kisScrsItmsKcdNm = 'KIS', kbpScrsItmsKcdNm = 'KBP', niceScrsItmsKcdNm = 'NICE',
         ), inplace=True)
+        bond_info.DATE = pd.to_datetime(bond_info.DATE, format='%Y%m%d')
+        bond_info.EXPIRE = pd.to_datetime(bond_info.EXPIRE, format='%Y%m%d', errors='coerce')
+        bond_info.VOLUME = bond_info.VOLUME.astype(int)
+        bond_info.PRICE = bond_info.PRICE.astype(float)
+        bond_info.BENEFIT = bond_info.BENEFIT.astype(float)
+        bond_info.INTEREST = bond_info.INTEREST.astype(float)
         bond_info.KIS = bond_info.KIS.map({
             '': True, 'AAA': True,
             'AA+': True, 'AA0': True, 'AA-': True,
